@@ -11,31 +11,11 @@ ACTION_HIT = 0
 ACTION_STAND = 1  #  "strike" in the book
 ACTIONS = [ACTION_HIT, ACTION_STAND]
 
-# policy for player
-POLICY_PLAYER = np.zeros(22)
-for i in range(12, 20):
-    POLICY_PLAYER[i] = ACTION_HIT
-POLICY_PLAYER[20] = ACTION_STAND
-POLICY_PLAYER[21] = ACTION_STAND
-
-# function form of target policy of player
-def target_policy_player(state):
-	player_sum, dealer_sum = state
-	return POLICY_PLAYER[player_sum]
-
-# function form of behavior policy of player
-# all actions tried with non-zero probability
-def behavior_policy_player(state):
-    if np.random.binomial(1, 0.5) == 1:
-        return ACTION_STAND
-    return ACTION_HIT
-
-# policy for dealer
-POLICY_DEALER = np.zeros(22)
-for i in range(12, 17):
-    POLICY_DEALER[i] = ACTION_HIT
-for i in range(17, 22):
-    POLICY_DEALER[i] = ACTION_STAND
+def epsilon_greedy_policy(Q, epsilon, numActions, state_action):
+	A = np.ones(numActions, dtype=float) * epsilon / numActions
+	best_action = np.argmax(Q[state_action])
+	A[best_action] += (1.0 - epsilon)
+	return A
 
 # get a new card
 def get_card(firstCard=False):
@@ -60,7 +40,9 @@ def get_collor(firstCard):
 def step(state, action):
 	player_sum, dealer_sum = state
 	reward = None
+	terminal = False
 
+	# is this the begining state?
 	if (player_sum == 0 and dealer_sum == 0):
 		# get first cards
 		player_sum = get_card(firstCard=True)
@@ -70,55 +52,62 @@ def step(state, action):
 	# If the player stands the dealer plays out
 	if (action == ACTION_STAND):
 		while True:
-			# get action based on current sum
-			dealer_action = POLICY_DEALER[dealer_sum]
-			if (dealer_action == ACTION_STAND):
-				break
-			dealer_sum += get_card()
-			if (21 < dealer_sum):
+			if (dealer_sum < 17 and 0 < dealer_sum):
+				dealer_sum += get_card()
+			else:
 				break
 
 		# dealer stands, check for winner
-		if (dealer_sum < 0 or 21 < dealer_sum or dealer_sum < player_sum):
+		if (dealer_sum < 1 or 21 < dealer_sum or dealer_sum < player_sum):
 			reward = 1
-		elif (dealer_sum == player_sum):
-			reward = 0
-		else:
+		elif (player_sum < 1 or 21 < player_sum or player_sum < dealer_sum):
 			reward = -1
+		else:
+			reward = 0
+
 	else:
 		player_sum += get_card()
 		if (player_sum < 1 or 21 < player_sum):
 			reward = -1
 
-	return [player_sum, dealer_sum], reward
+	return (player_sum, dealer_sum), reward
 
 
-	def monte_carlo_controll(episodes, policy_player):
-		for game in episodes:
-			state = (0, 0)
-			while True:
-				#get action
-				action = policy_player(state)
-				step(state, action)
-			break
+def monte_carlo_controll(numGames):
+	wins = 0
+	i = 0
+	for i in range(numGames):
+		state = (0, 0)
+		reward = None
+		
+		while True:
+			# update epsilon
+			epsilon = N0/(N0 + Ns[state])
+			# get probability array for actions
+			probs = epsilon_greedy_policy(Q, epsilon, len(ACTIONS), state)
+			# get action w.r.t. probabilities
+			action = np.random.choice(np.arange(len(ACTIONS)), p=probs)
+			# get next_state and reward
+			next_state, reward = step(state, action)
+			# update number of times the state has been visited
+			Ns[state] += 1
+			# update number of times action was selected from this state
+			Nas[(state, action)] += 1
 
+			state = tuple(next_state)
+			
+			if (reward is not None):
+				Ns[state] += 1
+				Nas[(state, action)] += 1
+				break
+			
+		for state_action in Nas:
+			Q[state_action] = Q[state_action] + 1/Nas[state_action] * (reward - Q[state_action])
 
-# play a game
-# @policy_player: specify policy for player
-# @initial_state: [whether player has a usable Ace, sum of player's cards, one card of dealer]
-# @initial_action: the initial action
-def play(policy_player, initial_state=None, initial_action=None):
+	i += 1
 
-	# initiate state
-	state = [0, 0]
+	return wins, i
 
-	# initial action
-	
-	while True:
-		action = policy_player(state)
-		state, reward = step(state, action)
-		if (reward is not None):
-			return state, reward
 
 
 # initialize value function - when asked to return a value for a missing key, 
@@ -127,28 +116,8 @@ def play(policy_player, initial_state=None, initial_action=None):
 Q = defaultdict(float)
 Nas = defaultdict(int)  # Will use a tuple of ints as a key!
 Ns = defaultdict(int)
-N0 = 100
+N0 = 1000
+wins = 0
 
-
-
-
-
-''' initial_state = [
-	np.random.choice(range(12, 22)),
-	np.random.choice(range(1, 11))	] '''
-
-# value function sem er [states, actions]
-#print(np.zeros((3, 3, 2, 2)))
-
-''' wins = 0
-draws = 0
-for i in range(0, 50):
-	state, reward = play(behavior_policy_player)
-	print(state)
-
-	if (reward == 1):
-		wins += 1
-	elif (reward == 0):
-		draws += 1
-
-print("wins: ", wins, " draws: ", draws , " loses: ", 50-wins-draws) '''
+game = monte_carlo_controll(1000000)
+print(game)
