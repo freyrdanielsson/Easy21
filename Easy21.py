@@ -45,7 +45,6 @@ def get_collor(firstCard):
 def step(state, action):
 	player_sum, dealer_sum = state
 	reward = None
-	terminal = False
 
 	# is this the begining state?
 	if (player_sum == 0 and dealer_sum == 0):
@@ -88,16 +87,22 @@ def monte_carlo_controll(numGames):
 		while True:
 			# update epsilon
 			epsilon = N0/(N0 + Ns[state])
+
 			# get probability array for actions
 			probs = epsilon_greedy_policy(Q, epsilon, len(ACTIONS), state)
+
 			# get action w.r.t. probabilities
 			action = np.random.choice(np.arange(len(ACTIONS)), p=probs)
+
 			# get next_state and reward
 			next_state, reward = step(state, action)
+
 			# keep track of states visited and action taken in this episode
 			trajectory.append((state, action))
+
 			# update number of times the state has been visited
 			Ns[state] += 1
+			
 			# update number of times action was selected from this state
 			Nas[(state, action)] += 1
 
