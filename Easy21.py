@@ -11,9 +11,14 @@ ACTION_HIT = 0
 ACTION_STAND = 1  #  "strike" in the book
 ACTIONS = [ACTION_HIT, ACTION_STAND]
 
-def epsilon_greedy_policy(Q, epsilon, numActions, state_action):
+def epsilon_greedy_policy(Q, epsilon, numActions, state):
 	A = np.ones(numActions, dtype=float) * epsilon / numActions
-	best_action = np.argmax(Q[state_action])
+	
+	# Ternary if sententece:
+	# Chose action 1 (stand) if (state, 0) is lower than (state, 1)
+	# Chose action 0 (hit) if (state, 1) is lower than (state, 0)
+	# else they are equal, so chose randomly
+	best_action = 1 if Q[(state, 0)] < Q[(state, 1)] else 0 if Q[(state, 1)] < Q[(state, 0)] else np.random.choice([0,1])
 	A[best_action] += (1.0 - epsilon)
 	return A
 
@@ -75,7 +80,6 @@ def step(state, action):
 
 def monte_carlo_controll(numGames):
 	wins = 0
-	i = 0
 	for i in range(numGames):
 		state = (0, 0)
 		reward = None
@@ -108,9 +112,7 @@ def monte_carlo_controll(numGames):
 		for state_action in trajectory:
 			Q[state_action] = Q[state_action] + 1/Nas[state_action] * (reward - Q[state_action])
 
-	i += 1
-
-	return wins, i
+	return wins
 
 
 

@@ -38,5 +38,8 @@ Q[state_action] = value
 print(Q[state_action]) '''
 
 a = defaultdict(int)
-a[(1,2)]
-print(a[(1,2)])
+a[((0,0),2)] = 100
+a[((0,0),3)] = 200
+
+print(a[((0,0),1)])
+
