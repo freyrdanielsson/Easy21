@@ -79,6 +79,7 @@ def monte_carlo_controll(numGames):
 	for i in range(numGames):
 		state = (0, 0)
 		reward = None
+		trajectory = []
 		
 		while True:
 			# update epsilon
@@ -89,6 +90,8 @@ def monte_carlo_controll(numGames):
 			action = np.random.choice(np.arange(len(ACTIONS)), p=probs)
 			# get next_state and reward
 			next_state, reward = step(state, action)
+			# keep track of states visited and action taken in this episode
+			trajectory.append((state, action))
 			# update number of times the state has been visited
 			Ns[state] += 1
 			# update number of times action was selected from this state
@@ -98,10 +101,9 @@ def monte_carlo_controll(numGames):
 			
 			if (reward is not None):
 				Ns[state] += 1
-				Nas[(state, action)] += 1
 				break
 			
-		for state_action in Nas:
+		for state_action in trajectory:
 			Q[state_action] = Q[state_action] + 1/Nas[state_action] * (reward - Q[state_action])
 
 	i += 1
@@ -119,5 +121,5 @@ Ns = defaultdict(int)
 N0 = 1000
 wins = 0
 
-game = monte_carlo_controll(1000000)
+game = monte_carlo_controll(50000)
 print(game)
