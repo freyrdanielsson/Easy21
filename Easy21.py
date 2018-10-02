@@ -100,6 +100,8 @@ def monte_carlo_controll(numGames):
 			state = tuple(next_state)
 			
 			if (reward is not None):
+				if reward == 1:
+					wins += 1
 				Ns[state] += 1
 				break
 			
