@@ -56,10 +56,12 @@ def step(state, action):
 	# If the player stands the dealer plays out
 	if (action == ACTION_STAND):
 		while True:
-			if (dealer_sum < 17 and 0 < dealer_sum):
-				dealer_sum += get_card()
-			else:
+			# try what happens if the dealer stands only when he is winning or drawing
+			# if (17 <= dealer_sum and dealer_sum <= 1)
+			if (dealer_sum >= player_sum or dealer_sum < 1 or 17 <= dealer_sum):
 				break
+			else:
+				dealer_sum += get_card()
 
 		# dealer stands, check for winner
 		if (dealer_sum < 1 or 21 < dealer_sum or dealer_sum < player_sum):
@@ -102,7 +104,7 @@ def monte_carlo_controll(numGames):
 
 			# update number of times the state has been visited
 			Ns[state] += 1
-			
+
 			# update number of times action was selected from this state
 			Nas[(state, action)] += 1
 
