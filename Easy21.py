@@ -32,8 +32,8 @@ def get_collor(firstCard):
 	if(firstCard):
 		return 1 #black
 
-	x = np.random.uniform(0, 1)
-	if (x < (1/3)):
+	x = np.random.randint(0, 3)
+	if (x < 1):
 		return -1 #red
 	return 1 #black
 
@@ -51,7 +51,7 @@ def step(state, action):
 		while True:
 			# try what happens if the dealer stands only when he is winning or drawing
 			#if (dealer_sum >= player_sum or dealer_sum < 1 or 17 <= dealer_sum):
-			if (17 <= dealer_sum or dealer_sum <= 1):
+			if (17 <= dealer_sum or dealer_sum < 1):
 				break
 			else:
 				dealer_sum += get_card()
@@ -77,6 +77,7 @@ def monte_carlo_controll(numGames, Qmc, N0):
 
 	Nsa = defaultdict(int)  # nr of action a picked from state s
 	Ns = defaultdict(int) # nr state s visited
+	c = 0
 
 	for i in range(0, numGames):
 		# get first cards
@@ -99,14 +100,14 @@ def monte_carlo_controll(numGames, Qmc, N0):
 			# get action w.r.t. probabilities
 			action = np.random.choice(np.arange(len(ACTIONS)), p=probs)
 
+			# keep track of states visited and action taken in this episode
+			trajectory.append((state, action))
+			
 			# update number of times action was selected from this state
 			Nsa[(state, action)] += 1
 
 			# get next_state and reward
 			next_state, reward = step(state, action)
-
-			# keep track of states visited and action taken in this episode
-			trajectory.append((state, action))
 			
 			if (reward is not None):
 				if reward == 1:
@@ -114,7 +115,7 @@ def monte_carlo_controll(numGames, Qmc, N0):
 				Ns[next_state] += 1
 				break
 			
-			state = tuple(next_state)
+			state = next_state
 			
 
 		for state_action in trajectory:
@@ -197,7 +198,6 @@ def sarsa_lambda(numgames, Qsarsa, Qmc, _lambda=0.1):
 def plot_MC(Q):
 	# For plotting: Create value function from action-value function
 	# by picking the best action at each state
-	grid = []
 	state_action_values = np.zeros((12, 10))
 	for player_sum in range(10, 22):
 		for dealer_first in range(1, 11):
@@ -225,13 +225,14 @@ N0 = 1000
 # and it will never be to big or to small, keys must also be hashable so i use ints or tuples
 Qmc = defaultdict(float) #  Will use a tuple of (state, action) as a key!
 
-win, Qmc = monte_carlo_controll(10000, Qmc, N0)
+win, Qmc = monte_carlo_controll(100000, Qmc, N0)
+
 plot_MC(Qmc)
 # plot the optimal value function on a heat map, TODO change this to 3D?
 # is the player so likely to win when the dealer card is 1 for there is no usable ace and he might go bust? (draw a negative card)
 print(win)
 
-# get lambda from 0, 0.1, ..., 1.0
+''' # get lambda from 0, 0.1, ..., 1.0
 lmbda = np.arange(0, 1.1, 0.1)
 
 # to keep track of mean-squared errors for plotting later
@@ -245,6 +246,7 @@ for l in lmbda:
 
 # print the mean-squared errors for each lambda for observation
 for i in range(0, len(errors)):
-	print('lambda: ',lmbda[i], ' mean-squared-error: ', errors[i])
+	print('lambda: ',lmbda[i], ' mean-squared-error: ', errors[i]) '''
+	
 
 

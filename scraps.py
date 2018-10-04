@@ -51,7 +51,11 @@ for x in s:
 
 print(m)
  '''
-print(np.arange(0,1.1,0.1))
-# vantar gæja sem er s[x, y] = v
+
+
+test = defaultdict(float)
+test[(20, -1), 1] += 1
+
+print(test[((20,-1), 1)])
 
 
