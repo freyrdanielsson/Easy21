@@ -78,7 +78,7 @@ def monte_carlo_controll(numGames, Qmc, N0):
 	Nsa = defaultdict(int)  # nr of action a picked from state s
 	Ns = defaultdict(int) # nr state s visited
 
-	for i in range(numGames):
+	for i in range(0, numGames):
 		# get first cards
 		player_sum = get_card(firstCard=True)
 		dealer_sum = get_card(firstCard=True)
@@ -120,16 +120,16 @@ def monte_carlo_controll(numGames, Qmc, N0):
 		for state_action in trajectory:
 			Qmc[state_action] = Qmc[state_action] + 1/Nsa[state_action] * (reward - Qmc[state_action])
 
-	return wins
+	return wins, Qmc
 
 
-def sarsa_lambda(numgames, Qsarsa,_lambda=0.1):
+def sarsa_lambda(numgames, Qsarsa, Qmc, _lambda=0.1):
 	wins = 0
 	Nsa = defaultdict(int)  # nr of action a picked from state s
 	E = defaultdict(float)
 	Ns = defaultdict(int) # nr state s visited
 
-	for i in range(numgames):
+	for i in range(0, numgames):
 		# get first cards
 		player_sum = get_card(firstCard=True)
 		dealer_sum = get_card(firstCard=True)
@@ -187,11 +187,35 @@ def sarsa_lambda(numgames, Qsarsa,_lambda=0.1):
 			state = next_state
 			action = next_action
 
-	return wins, Qsarsa
+	mean_err = 0.0
+	for state_action in Qsarsa:
+		mean_err += pow(Qsarsa[state_action] - Qmc[state_action], 2)
+
+	return wins, mean_err, Qsarsa
 
 
+def plot_MC(Q):
+	# For plotting: Create value function from action-value function
+	# by picking the best action at each state
+	grid = []
+	state_action_values = np.zeros((12, 10))
+	for player_sum in range(10, 22):
+		for dealer_first in range(1, 11):
+			# pick value from best action
+			best = np.max([Q[((player_sum, dealer_first), 0)], Q[((player_sum, dealer_first), 1)]])
+			state_action_values[player_sum-10, dealer_first-1] = best
 
 
+	_, axes = plt.subplots(1, 1, figsize=(10, 8))
+
+	fig = sns.heatmap(np.flipud(state_action_values), cmap="YlGnBu", xticklabels=range(1, 11),
+							yticklabels=list(reversed(range(10, 22))))
+	fig.set_ylabel('player sum', fontsize=16)
+	fig.set_xlabel('dealer showing', fontsize=16)
+	fig.set_title('Optimal value function', fontsize=16)
+		
+	plt.show()
+	plt.savefig('plotValue.png')
 
 
 N0 = 1000
@@ -200,8 +224,27 @@ N0 = 1000
 # this is the same as initializing an array with values 0.0, but for the dict we dont need to know the size at the begining
 # and it will never be to big or to small, keys must also be hashable so i use ints or tuples
 Qmc = defaultdict(float) #  Will use a tuple of (state, action) as a key!
-Qsarsa = defaultdict(float)
 
-game1 = monte_carlo_controll(1000, Qmc, N0)
-game2 = sarsa_lambda(1000, Qsarsa, 0.1)
-print(game1, game2)
+win, Qmc = monte_carlo_controll(10000, Qmc, N0)
+plot_MC(Qmc)
+# plot the optimal value function on a heat map, TODO change this to 3D?
+# is the player so likely to win when the dealer card is 1 for there is no usable ace and he might go bust? (draw a negative card)
+print(win)
+
+# get lambda from 0, 0.1, ..., 1.0
+lmbda = np.arange(0, 1.1, 0.1)
+
+# to keep track of mean-squared errors for plotting later
+errors = []
+
+# For all lambdas, run sarsa lambda for 1000 episodes, calc the mean-sq error 
+for l in lmbda:
+	Qsarsa = defaultdict(float)
+	win, mean_err, Qsarsa = sarsa_lambda(1000, Qsarsa, Qmc, l)
+	errors.append(mean_err)
+
+# print the mean-squared errors for each lambda for observation
+for i in range(0, len(errors)):
+	print('lambda: ',lmbda[i], ' mean-squared-error: ', errors[i])
+
+

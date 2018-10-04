@@ -37,9 +37,21 @@ value = 1.0
 Q[state_action] = value
 print(Q[state_action]) '''
 
-a = defaultdict(int)
-a[((0,0),2)] = 100
-a[((0,0),3)] = 200
+''' s = defaultdict(float)
+d = defaultdict(float)
 
-print(a[((0,0),1)])
+s[0] = 1
+s[1] = 2
+
+d[0] = 1.2
+d[1] = 2.9
+m = 0.0
+for x in s:
+	m += pow((s[x] - d[x]), 2)
+
+print(m)
+ '''
+print(np.arange(0,1.1,0.1))
+# vantar gæja sem er s[x, y] = v
+
 
