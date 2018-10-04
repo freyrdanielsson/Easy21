@@ -229,7 +229,6 @@ win, Qmc = monte_carlo_controll(100000, Qmc, N0)
 
 plot_MC(Qmc)
 # plot the optimal value function on a heat map, TODO change this to 3D?
-# is the player so likely to win when the dealer card is 1 for there is no usable ace and he might go bust? (draw a negative card)
 print(win)
 
 ''' # get lambda from 0, 0.1, ..., 1.0
