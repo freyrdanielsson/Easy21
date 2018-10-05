@@ -15,9 +15,9 @@ def epsilon_greedy_policy(Q, epsilon, numActions, state):
 	A = np.ones(numActions, dtype=float) * epsilon / numActions
 	
 	# Ternary if sententece:
-	# Chose action 1 (stand) if (state, 0) is lower than (state, 1)
-	# Chose action 0 (hit) if (state, 1) is lower than (state, 0)
-	# else they are equal, so chose randomly
+	# Chose action 1 (stand) if (state, hit) is lower than (state, stand)
+	# Chose action 0 (hit) if (state, stand) is lower than (state, hit)
+	# else they are equal, so chose randomly 👍
 	best_action = 1 if Q[(state, 0)] < Q[(state, 1)] else 0 if Q[(state, 1)] < Q[(state, 0)] else np.random.choice([0,1])
 	A[best_action] += (1.0 - epsilon)
 	return A
@@ -72,9 +72,9 @@ def step(state, action):
 	return (player_sum, dealer_sum), reward
 
 
-def monte_carlo_controll(numGames, Qmc, N0):
+def monte_carlo_controll(numGames, Qmc):
 	wins = 0
-
+	N0 = 1000
 	Nsa = defaultdict(int)  # nr of action a picked from state s
 	Ns = defaultdict(int) # nr state s visited
 	c = 0
@@ -126,11 +126,12 @@ def monte_carlo_controll(numGames, Qmc, N0):
 
 def sarsa_lambda(numgames, Qsarsa, Qmc, _lambda=0.1):
 	wins = 0
+	N0 = 1000
 	Nsa = defaultdict(int)  # nr of action a picked from state s
-	E = defaultdict(float)
 	Ns = defaultdict(int) # nr state s visited
 
 	for i in range(0, numgames):
+		E = defaultdict(float)
 		# get first cards
 		player_sum = get_card(firstCard=True)
 		dealer_sum = get_card(firstCard=True)
@@ -167,8 +168,9 @@ def sarsa_lambda(numgames, Qsarsa, Qmc, _lambda=0.1):
 			# get next_action w.r.t. probabilities
 			next_action = np.random.choice(np.arange(len(ACTIONS)), p=probs)
 
-			# update delta
-			delta = (0 if not reward else reward) + Qsarsa[(next_action, next_action)] - Qsarsa[(state, action)]
+			# update delta. Note: if the next_state is terminal, Qsarsa[(next_state, next_action)] returns 0.0
+			# always, because this state-value will not be updated, and is by default 0.0
+			delta = (0 if not reward else reward) + Qsarsa[(next_state, next_action)] - Qsarsa[(state, action)]
 
 			# update eligibility
 			E[(state, action)] += 1
@@ -192,10 +194,12 @@ def sarsa_lambda(numgames, Qsarsa, Qmc, _lambda=0.1):
 	for state_action in Qsarsa:
 		mean_err += pow(Qsarsa[state_action] - Qmc[state_action], 2)
 
-	return wins, mean_err, Qsarsa
+	return wins, mean_err/len(Qsarsa), Qsarsa
 
-
-def plot_MC(Q):
+# Parameter: Q - is a defaultdict with key (state, action) and the value is a value for that state-action pair
+# state is a tuple
+# action is an int
+def plot_heatMap(Q, title):
 	# For plotting: Create value function from action-value function
 	# by picking the best action at each state
 	state_action_values = np.zeros((12, 10))
@@ -212,40 +216,44 @@ def plot_MC(Q):
 							yticklabels=list(reversed(range(10, 22))))
 	fig.set_ylabel('player sum', fontsize=16)
 	fig.set_xlabel('dealer showing', fontsize=16)
-	fig.set_title('Optimal value function', fontsize=16)
+	fig.set_title(title, fontsize=16)
 		
 	plt.show()
-	plt.savefig('plotValue.png')
+	plt.savefig(title + '.png')
 
 
-N0 = 1000
 # initialize value function - when asked to return a value for a missing key, 
 # defaultdict creates the key with a value 0.0 and returns 0.0
 # this is the same as initializing an array with values 0.0, but for the dict we dont need to know the size at the begining
 # and it will never be to big or to small, keys must also be hashable so i use ints or tuples
 Qmc = defaultdict(float) #  Will use a tuple of (state, action) as a key!
 
-win, Qmc = monte_carlo_controll(100000, Qmc, N0)
+win, Qmc = monte_carlo_controll(50000, Qmc)
 
-plot_MC(Qmc)
+plot_heatMap(Qmc, 'MC_Controll_V(s)_50k_episodes')
 # plot the optimal value function on a heat map, TODO change this to 3D?
 print(win)
 
-''' # get lambda from 0, 0.1, ..., 1.0
-lmbda = np.arange(0, 1.1, 0.1)
-
+# get lambda from 0, 0.1, ..., 1.0
+lmbda = np.arange(0.1, 1.0, 0.1)
 # to keep track of mean-squared errors for plotting later
 errors = []
-
 # For all lambdas, run sarsa lambda for 1000 episodes, calc the mean-sq error 
 for l in lmbda:
 	Qsarsa = defaultdict(float)
-	win, mean_err, Qsarsa = sarsa_lambda(1000, Qsarsa, Qmc, l)
+	win, mean_err, Qsarsa = sarsa_lambda(1000, Qsarsa, Qmc, _lambda=l)
 	errors.append(mean_err)
+
+Qsarsa = defaultdict(float)
+win, mean_err, Qsarsa = sarsa_lambda(50000, Qsarsa, Qmc, 1.0)
+plot_heatMap(Qsarsa, 'Sarsa_lambda_1_50k_episodes')
+
 
 # print the mean-squared errors for each lambda for observation
 for i in range(0, len(errors)):
-	print('lambda: ',lmbda[i], ' mean-squared-error: ', errors[i]) '''
+	print('lambda: ',round(lmbda[i], 2), ' mean-squared-error: ', errors[i])
+
+print('lambda: ',round(1.0, 2), ' mean-squared-error: ', mean_err)
 	
 
 

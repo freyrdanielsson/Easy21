@@ -55,7 +55,8 @@ print(m)
 
 test = defaultdict(float)
 test[(20, -1), 1] += 1
-
-print(test[((20,-1), 1)])
+reward = -1
+delta = (0 if not reward else reward)
+print(delta)
 
 
