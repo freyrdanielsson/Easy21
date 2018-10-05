@@ -59,4 +59,7 @@ reward = -1
 delta = (0 if not reward else reward)
 print(delta)
 
+lmbda = np.arange(0.0, 1.1, 0.1)
+print(lmbda)
+
 

@@ -79,7 +79,7 @@ def monte_carlo_controll(numGames, Qmc):
 	Ns = defaultdict(int) # nr state s visited
 	c = 0
 
-	for i in range(0, numGames):
+	for episode in range(0, numGames):
 		# get first cards
 		player_sum = get_card(firstCard=True)
 		dealer_sum = get_card(firstCard=True)
@@ -124,13 +124,15 @@ def monte_carlo_controll(numGames, Qmc):
 	return wins, Qmc
 
 
-def sarsa_lambda(numgames, Qsarsa, Qmc, _lambda=0.1):
+def sarsa_lambda(numgames, Qsarsa, Qmc, _lambda=0.1, calc_per_episode=False):
 	wins = 0
 	N0 = 1000
 	Nsa = defaultdict(int)  # nr of action a picked from state s
 	Ns = defaultdict(int) # nr state s visited
+	mean_per_episode = []
 
-	for i in range(0, numgames):
+	for episode in range(0, numgames):
+		# Initialize eligibility for this episode
 		E = defaultdict(float)
 		# get first cards
 		player_sum = get_card(firstCard=True)
@@ -175,7 +177,7 @@ def sarsa_lambda(numgames, Qsarsa, Qmc, _lambda=0.1):
 			# update eligibility
 			E[(state, action)] += 1
 
-			# for all state-action we have taken
+			# for all state-action we have taken during all episodes to this point
 			for state_action in Nsa:
 				alpha = 1/Nsa[state_action]
 				Qsarsa[state_action] = Qsarsa[state_action] + alpha * delta * E[state_action]
@@ -189,12 +191,21 @@ def sarsa_lambda(numgames, Qsarsa, Qmc, _lambda=0.1):
 			
 			state = next_state
 			action = next_action
+			
+			
+		if calc_per_episode:
+			err = 0
+			for state_action in Qmc:
+				err += pow(Qsarsa[state_action] - Qmc[state_action], 2)
+			mean_per_episode.append(err/len(Qmc))
+
+			
 
 	mean_err = 0.0
-	for state_action in Qsarsa:
+	for state_action in Qmc:
 		mean_err += pow(Qsarsa[state_action] - Qmc[state_action], 2)
 
-	return wins, mean_err/len(Qsarsa), Qsarsa
+	return wins, mean_err/len(Qmc), mean_per_episode, Qsarsa
 
 # Parameter: Q - is a defaultdict with key (state, action) and the value is a value for that state-action pair
 # state is a tuple
@@ -211,7 +222,7 @@ def plot_heatMap(Q, title):
 
 
 	_, axes = plt.subplots(1, 1, figsize=(10, 8))
-
+	plt.figure()
 	fig = sns.heatmap(np.flipud(state_action_values), cmap="YlGnBu", xticklabels=range(1, 11),
 							yticklabels=list(reversed(range(10, 22))))
 	fig.set_ylabel('player sum', fontsize=16)
@@ -221,39 +232,43 @@ def plot_heatMap(Q, title):
 	plt.show()
 	plt.savefig(title + '.png')
 
+def plotError_perEpisode(_lambda, meanError):
+	plt.figure()
+	for i in range(0, len(_lambda)):
+		plt.step(range(0,1000), meanError[i], label = 'lambda ' + str(_lambda[i]))
+		plt.xlabel('Episodes')
+		plt.ylabel('Mean squared error')
+		plt.legend()
+	
+	plt.savefig('lambda.png')
 
 # initialize value function - when asked to return a value for a missing key, 
 # defaultdict creates the key with a value 0.0 and returns 0.0
 # this is the same as initializing an array with values 0.0, but for the dict we dont need to know the size at the begining
 # and it will never be to big or to small, keys must also be hashable so i use ints or tuples
-Qmc = defaultdict(float) #  Will use a tuple of (state, action) as a key!
-
+Qmc = defaultdict(float)
 win, Qmc = monte_carlo_controll(50000, Qmc)
 
-plot_heatMap(Qmc, 'MC_Controll_V(s)_50k_episodes')
 # plot the optimal value function on a heat map, TODO change this to 3D?
-print(win)
+plot_heatMap(Qmc, 'MC_Controll_V(s)_50k_episodes')
 
 # get lambda from 0, 0.1, ..., 1.0
-lmbda = np.arange(0.1, 1.0, 0.1)
+lmbda = np.arange(0.0, 1.1, 0.1)
 # to keep track of mean-squared errors for plotting later
 errors = []
+errors_perEpisode = []
 # For all lambdas, run sarsa lambda for 1000 episodes, calc the mean-sq error 
 for l in lmbda:
 	Qsarsa = defaultdict(float)
-	win, mean_err, Qsarsa = sarsa_lambda(1000, Qsarsa, Qmc, _lambda=l)
+	win, mean_err, meanPerEpisode, Qsarsa = sarsa_lambda(1000, Qsarsa, Qmc, _lambda=l, calc_per_episode=True)
 	errors.append(mean_err)
+	errors_perEpisode.append(meanPerEpisode)
 
-Qsarsa = defaultdict(float)
-win, mean_err, Qsarsa = sarsa_lambda(50000, Qsarsa, Qmc, 1.0)
-plot_heatMap(Qsarsa, 'Sarsa_lambda_1_50k_episodes')
+plotError_perEpisode([0.0, 1.0], [errors_perEpisode[0], errors_perEpisode[10]])
 
 
-# print the mean-squared errors for each lambda for observation
-for i in range(0, len(errors)):
-	print('lambda: ',round(lmbda[i], 2), ' mean-squared-error: ', errors[i])
+plot_heatMap(Qsarsa, 'Sarsa_lambda')
 
-print('lambda: ',round(1.0, 2), ' mean-squared-error: ', mean_err)
 	
 
 
