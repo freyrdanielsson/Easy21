@@ -50,7 +50,7 @@ def step(state, action):
 	if (action == ACTION_STAND):
 		while True:
 			# try what happens if the dealer stands only when he is winning or drawing
-			#if (dealer_sum >= player_sum or dealer_sum < 1 or 17 <= dealer_sum):
+			#if (dealer_sum >= player_sum or dealer_sum < 1):
 			if (17 <= dealer_sum or dealer_sum < 1):
 				break
 			else:
