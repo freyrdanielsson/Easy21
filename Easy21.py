@@ -277,7 +277,7 @@ def plotError_perEpisode(_lambda, meanError):
 # Plots the mean-squared error for each value in _lambda
 def plotError_perLambda(_lambda, meanError):
 	plt.figure()
-	plt.plot(_lambda, meanError, label = 'lambda?')
+	plt.plot(_lambda, meanError, label=None)
 	plt.xlabel('lambda')
 	plt.ylabel('Mean squared error')
 	plt.legend()
@@ -290,10 +290,10 @@ def main():
 	# this is the same as initializing an array with values 0.0, but for the dict we dont need to know the size at the begining
 	# and it will never be to big or to small, keys must also be hashable so i use ints or tuples
 	Qmc = defaultdict(float)
-	win, Qmc = monte_carlo_controll(50000, Qmc)
+	win, Qmc = monte_carlo_controll(500000, Qmc)
 
 	# plot the optimal value function on a heat map, TODO change this to 3D?
-	plot_heatMap(Qmc, 'C_Controll_V(s)_50k_episodes')
+	plot_heatMap(Qmc, 'MC_Control')
 
 	# generate lambda from 0, 0.1, ..., 1.0
 	lmbda = np.arange(0.0, 1.1, 0.1)
@@ -310,12 +310,13 @@ def main():
 		errors_perEpisode.append(meanPerEpisode)
 
 	# Plot mean square error against episodes for lambda 0.0 and lambda 1.0
-	plotError_perEpisode([0.0, 1.0], [errors_perEpisode[0], errors_perEpisode[10]])
+	#plotError_perEpisode([0.0, 1.0], [errors_perEpisode[0], errors_perEpisode[10]])
 	# Plot mean square error against lambda for lambda = [0.1,...0.9]
 	plotError_perLambda(lmbda, errors)
 
 
 	# Code bellow plots value function for sarsa lambda = 1.0, this was not asked for, just for me
+	# Qsarsa = defaultdict(float)
 	#win, mean_err, meanPerEpisode, Qsarsa = sarsa_lambda(50000, Qsarsa, Qmc, _lambda=1.0)
 	#plot_heatMap(Qsarsa, 'Sarsa_lambda')
 
