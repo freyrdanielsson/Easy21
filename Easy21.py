@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib
+from mpl_toolkits.mplot3d import Axes3D
 from collections import defaultdict
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
@@ -50,6 +51,7 @@ def step(state, action):
 	if (action == ACTION_STAND):
 		while True:
 			# try what happens if the dealer stands only when he is winning or drawing
+			# this makes the dealer much much better! 🧠
 			#if (dealer_sum >= player_sum or dealer_sum < 1):
 			if (17 <= dealer_sum or dealer_sum < 1):
 				break
@@ -137,10 +139,10 @@ def monte_carlo_controll(numGames, Qmc):
 # @calc_per_episode: whether to calculate the mean square error for each episode or not - boolean
 #
 # returns:
-# wins: number of games won by agent - int
-# mean_err: mean squared error over all episodes - array
-# mean_per_episode: mean squared error for each episode - array
-# Qsarsa: improved action-value function over numgames episodes - defaultdict(float)
+# @wins: number of games won by agent - int
+# @mean_err: mean squared error over all episodes - array
+# @mean_per_episode: mean squared error for each episode - array
+# @Qsarsa: improved action-value function over @numgames episodes - defaultdict(float)
 def sarsa_lambda(numgames, Qsarsa, Qmc, _lambda=0.1, calc_per_episode=False):
 	wins = 0
 	N0 = 1000
@@ -174,7 +176,7 @@ def sarsa_lambda(numgames, Qsarsa, Qmc, _lambda=0.1, calc_per_episode=False):
 			# update number of times action was selected from this state
 			Nsa[(state, action)] += 1
 
-			# get next_state and reward
+			# get next_state and reward by taking the action
 			next_state, reward = step(state, action)
 
 			# update epsilon
@@ -233,24 +235,53 @@ def sarsa_lambda(numgames, Qsarsa, Qmc, _lambda=0.1, calc_per_episode=False):
 def plot_heatMap(Q, title):
 	# For plotting: Create value function from action-value function
 	# by picking the best action at each state
-	state_action_values = np.zeros((12, 10))
-	for player_sum in range(10, 22):
+	state_action_values = np.zeros((21, 10))
+	for player_sum in range(1, 22):
 		for dealer_first in range(1, 11):
 			# pick value from best action
 			best = np.max([Q[((player_sum, dealer_first), 0)], Q[((player_sum, dealer_first), 1)]])
-			state_action_values[player_sum-10, dealer_first-1] = best
+			state_action_values[player_sum-1, dealer_first-1] = best
 
 
 	_, axes = plt.subplots(1, 1, figsize=(10, 8))
 	plt.figure()
 	fig = sns.heatmap(np.flipud(state_action_values), cmap="YlGnBu", xticklabels=range(1, 11),
-							yticklabels=list(reversed(range(10, 22))))
+							yticklabels=list(reversed(range(1, 22))))
 	fig.set_ylabel('player sum', fontsize=16)
 	fig.set_xlabel('dealer showing', fontsize=16)
-	fig.set_title(title, fontsize=16)
+	fig.set_title('Optimal Value Function', fontsize=16)
 		
-	plt.show()
-	plt.savefig(title + '.png')
+	plt.savefig(title + '_heatmap.png')
+
+	# 3d plot
+
+	x_scale=1
+	y_scale=1.5
+	z_scale=1
+
+	scale=np.diag([x_scale, y_scale, z_scale, 1.0])
+	scale=scale*(1.0/scale.max())
+	scale[3,3]=1.0
+
+	def short_proj():
+		return np.dot(Axes3D.get_proj(ax), scale)
+
+
+	fig = plt.figure()
+	ax = plt.axes(projection='3d')
+	ax.get_proj=short_proj
+
+	Y = np.arange(1, 22)
+	X = np.arange(1, 11)
+	X, Y = np.meshgrid(X, Y)
+
+	ax.plot_wireframe(X, Y, state_action_values, rstride=1, cstride=1)
+	plt.ylabel('Player sum')
+	plt.xlabel('Dealer showing')
+	plt.title('Optimal Value Function')
+	plt.savefig(title + '_3d.png')
+
+	
 
 
 # Parameters:
@@ -293,7 +324,7 @@ def main():
 	win, Qmc = monte_carlo_controll(500000, Qmc)
 
 	# plot the optimal value function on a heat map, TODO change this to 3D?
-	plot_heatMap(Qmc, 'MC_Control')
+	plot_heatMap(Qmc, 'MC Control')
 
 	# generate lambda from 0, 0.1, ..., 1.0
 	lmbda = np.arange(0.0, 1.1, 0.1)
@@ -310,12 +341,12 @@ def main():
 		errors_perEpisode.append(meanPerEpisode)
 
 	# Plot mean square error against episodes for lambda 0.0 and lambda 1.0
-	#plotError_perEpisode([0.0, 1.0], [errors_perEpisode[0], errors_perEpisode[10]])
-	# Plot mean square error against lambda for lambda = [0.1,...0.9]
-	plotError_perLambda(lmbda, errors)
+	plotError_perEpisode([0.0, 1.0], [errors_perEpisode[0], errors_perEpisode[10]])
+	# Plot mean square error against lambda for lambda = [0.0,...1.0]
+	plotError_perLambda(lmbda, errors) 
 
 
-	# Code bellow plots value function for sarsa lambda = 1.0, this was not asked for, just for me
+	# Code bellow plots value function for Qsarsa lambda = 1.0, this was not asked for, just for me
 	# Qsarsa = defaultdict(float)
 	#win, mean_err, meanPerEpisode, Qsarsa = sarsa_lambda(50000, Qsarsa, Qmc, _lambda=1.0)
 	#plot_heatMap(Qsarsa, 'Sarsa_lambda')
